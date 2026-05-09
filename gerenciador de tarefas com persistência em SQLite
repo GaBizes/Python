@@ -1,0 +1,71 @@
+import sqlite3
+from datetime import datetime
+
+class TaskManager:
+    def __init__(self, db_name="tasks.db"):
+        self.conn = sqlite3.connect(db_name)
+        self.create_table()
+
+    def create_table(self):
+        query = """
+        CREATE TABLE IF NOT EXISTS tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            description TEXT,
+            due_date TEXT,
+            status TEXT DEFAULT 'Pendente'
+        )
+        """
+        self.conn.execute(query)
+        self.conn.commit()
+
+    def add_task(self, title, description="", due_date=None):
+        query = "INSERT INTO tasks (title, description, due_date) VALUES (?, ?, ?)"
+        self.conn.execute(query, (title, description, due_date))
+        self.conn.commit()
+
+    def list_tasks(self, status=None):
+        query = "SELECT * FROM tasks"
+        if status:
+            query += " WHERE status = ?"
+            cursor = self.conn.execute(query, (status,))
+        else:
+            cursor = self.conn.execute(query)
+        return cursor.fetchall()
+
+    def update_status(self, task_id, new_status):
+        query = "UPDATE tasks SET status = ? WHERE id = ?"
+        self.conn.execute(query, (new_status, task_id))
+        self.conn.commit()
+
+    def delete_task(self, task_id):
+        query = "DELETE FROM tasks WHERE id = ?"
+        self.conn.execute(query, (task_id,))
+        self.conn.commit()
+
+    def close(self):
+        self.conn.close()
+
+
+# Exemplo de uso
+if __name__ == "__main__":
+    manager = TaskManager()
+
+    # Adicionando tarefas
+    manager.add_task("Estudar Python", "Revisar classes e objetos", "2026-05-15")
+    manager.add_task("Criar portfólio", "Adicionar projetos no GitHub", "2026-05-20")
+
+    # Listando todas as tarefas
+    print("📋 Lista de tarefas:")
+    for task in manager.list_tasks():
+        print(task)
+
+    # Atualizando status
+    manager.update_status(1, "Concluída")
+
+    # Listando apenas pendentes
+    print("\n⏳ Tarefas pendentes:")
+    for task in manager.list_tasks(status="Pendente"):
+        print(task)
+
+    manager.close()
